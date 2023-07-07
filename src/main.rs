@@ -1,6 +1,15 @@
+use std::ffi::CString;
 use std::ffi::OsString;
 
 use clap::{arg, Command};
+
+mod dlt {
+    #![allow(non_upper_case_globals)]
+    #![allow(non_camel_case_types)]
+    #![allow(non_snake_case)]
+    #![allow(unused)]
+    include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
+}
 
 fn cli() -> Command {
     Command::new("dlt")
@@ -25,6 +34,14 @@ fn main() {
                 "Storing log \"{}\"",
                 sub_matches.get_one::<String>("MESSAGE").expect("required")
             );
+            unsafe {
+                let c_str = CString::new(format!("{}: {}: Hello FFI", file!(), line!())).unwrap();
+                dlt::dlt_log_init(dlt::DLT_LOG_TO_CONSOLE.try_into().unwrap());
+                dlt::dlt_log(
+                    dlt::DltLogLevelType_DLT_LOG_FATAL,
+                    c_str.as_ptr().cast_mut(),
+                );
+            }
         }
         Some((ext, sub_matches)) => {
             let args = sub_matches

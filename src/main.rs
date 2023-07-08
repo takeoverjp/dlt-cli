@@ -30,12 +30,9 @@ fn main() {
 
     match matches.subcommand() {
         Some(("log", sub_matches)) => {
-            println!(
-                "Storing log \"{}\"",
-                sub_matches.get_one::<String>("MESSAGE").expect("required")
-            );
+            let msg = sub_matches.get_one::<String>("MESSAGE").expect("required");
+            let c_str = CString::new(format!("{}", msg)).unwrap();
             unsafe {
-                let c_str = CString::new(format!("{}: {}: Hello FFI", file!(), line!())).unwrap();
                 dlt::dlt_log_init(dlt::DLT_LOG_TO_CONSOLE.try_into().unwrap());
                 dlt::dlt_log(
                     dlt::DltLogLevelType_DLT_LOG_FATAL,

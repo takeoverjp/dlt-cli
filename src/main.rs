@@ -20,8 +20,16 @@ fn cli() -> Command {
         .subcommand(
             Command::new("log")
                 .about("Store log")
-                .arg(arg!(<MESSAGE> "The message to store"))
-                .arg_required_else_help(true),
+                .arg(
+                    arg!(<MESSAGE> "The message to store")
+                        .value_parser(clap::builder::NonEmptyStringValueParser::new()),
+                )
+                .arg_required_else_help(true)
+                .arg(
+                    arg!(-c --"context-id" <CONTEXT_ID>)
+                        .value_parser(clap::builder::NonEmptyStringValueParser::new())
+                        .default_value("DLTC"),
+                ),
         )
 }
 
@@ -30,7 +38,9 @@ fn main() {
 
     match matches.subcommand() {
         Some(("log", sub_matches)) => {
-            let msg = sub_matches.get_one::<String>("MESSAGE").expect("required");
+            let msg: &String = sub_matches.get_one("MESSAGE").expect("required");
+            let ctid: &String = sub_matches.get_one("context-id").expect("required");
+            println!("ctid = {}", ctid);
             let c_str = CString::new(format!("{}", msg)).unwrap();
             unsafe {
                 dlt::dlt_log_init(dlt::DLT_LOG_TO_CONSOLE.try_into().unwrap());

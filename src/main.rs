@@ -2,14 +2,11 @@ use std::ffi::CString;
 use std::ffi::OsString;
 
 use clap::{arg, Command};
-
-mod dlt {
-    #![allow(non_upper_case_globals)]
-    #![allow(non_camel_case_types)]
-    #![allow(non_snake_case)]
-    #![allow(unused)]
-    include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
-}
+use libdlt_sys::dlt_user_log_write_finish;
+use libdlt_sys::dlt_user_log_write_string;
+use libdlt_sys::DltContext;
+use libdlt_sys::DltLogLevelType;
+use libdlt_sys::*;
 
 fn cli() -> Command {
     Command::new("dlt")
@@ -40,14 +37,31 @@ fn main() {
         Some(("log", sub_matches)) => {
             let msg: &String = sub_matches.get_one("MESSAGE").expect("required");
             let ctid: &String = sub_matches.get_one("context-id").expect("required");
-            println!("ctid = {}", ctid);
-            let c_str = CString::new(format!("{}", msg)).unwrap();
+            let message = CString::new(msg.to_string()).unwrap();
             unsafe {
-                dlt::dlt_log_init(dlt::DLT_LOG_TO_CONSOLE.try_into().unwrap());
-                dlt::dlt_log(
-                    dlt::DltLogLevelType_DLT_LOG_FATAL,
-                    c_str.as_ptr().cast_mut(),
+                let app_name = CString::new("APP").unwrap();
+                dlt_register_app(
+                    app_name.as_ptr(),
+                    CString::new("Example Application").unwrap().as_ptr(),
                 );
+                let mut context = DltContext::new_uninitialized();
+                let context_id = CString::new(ctid.clone()).unwrap();
+                let description = CString::new("This is a longer description").unwrap();
+                dlt_register_context(
+                    context.as_mut_ptr(),
+                    context_id.as_ptr(),
+                    description.as_ptr(),
+                );
+                let mut local_context = DltContextData::new_uninitialized();
+
+                let _dlt_local = dlt_user_log_write_start_id(
+                    context.as_mut_ptr(),
+                    local_context.as_mut_ptr(),
+                    DltLogLevelType::DLT_LOG_ERROR,
+                    1234,
+                );
+                dlt_user_log_write_string(local_context.as_mut_ptr(), message.as_ptr());
+                dlt_user_log_write_finish(local_context.as_mut_ptr());
             }
         }
         Some((ext, sub_matches)) => {

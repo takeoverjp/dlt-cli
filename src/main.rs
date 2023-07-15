@@ -37,11 +37,9 @@ fn cli() -> Command {
 
 fn dlt_log(apid: &str, ctid: &str, msg: &str) {
     let app_name = CString::new(apid).unwrap();
+    let app_desc = CString::new("Example Application").unwrap();
     unsafe {
-        dlt_register_app(
-            app_name.as_ptr(),
-            CString::new("Example Application").unwrap().as_ptr(),
-        );
+        dlt_register_app(app_name.as_ptr(), app_desc.as_ptr());
     }
     let mut context = DltContext::new_uninitialized();
     let context_id = CString::new(ctid).unwrap();
